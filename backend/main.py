@@ -10,7 +10,7 @@ import azure.cognitiveservices.speech as speechsdk
 import asyncio, threading, json
 from datetime import datetime
 
-# 환경 변수 로드
+# Environment variables
 
 from dotenv import load_dotenv
 import os
@@ -25,7 +25,7 @@ AZURE_OAI_MODEL    = os.getenv("AZURE_OAI_MODEL", "gpt-4.1-mini")
 LANGUAGE_KEY       = os.getenv("LANGUAGE_KEY", "")
 LANGUAGE_ENDPOINT  = os.getenv("LANGUAGE_ENDPOINT", "")
 
-# 클라이언트
+# Clients
 openai_client = AzureOpenAI(
     api_key=AZURE_OAI_KEY,
     azure_endpoint=AZURE_OAI_ENDPOINT,
@@ -37,7 +37,7 @@ language_client = TextAnalyticsClient(
     credential=AzureKeyCredential(LANGUAGE_KEY),
 )
 
-# FastAPI
+# FastAPI app & CORS
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -46,7 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 세션 상태
+# Session state
 class SessionState:
     def reset(self):
         self.active           = False
@@ -64,7 +64,7 @@ class SessionState:
 
 state = SessionState()
 
-# 헬퍼
+# Helpers
 def _now() -> str:
     return datetime.now().strftime("%H:%M:%S")
 
@@ -81,7 +81,7 @@ def send_sync(event: str, data: dict):
             state.loop,
         )
 
-# PII 마스킹
+# PII masking
 def mask_pii(text: str) -> str:
     try:
         result = language_client.recognize_pii_entities(
@@ -100,7 +100,7 @@ def mask_pii(text: str) -> str:
     except Exception:
         return text
 
-# 질문 필터
+# Question detection filters
 VOCAB_TRIGGERS = [
     "what is", "what are", "what does", "what do",
     "what's the difference between",
@@ -123,7 +123,7 @@ def _is_question(text: str) -> bool:
         return True
     return False
 
-# STT 콜백
+# STT callback
 def on_recognized(evt):
     if evt.result.reason != speechsdk.ResultReason.RecognizedSpeech:
         return
@@ -147,7 +147,7 @@ def on_recognized(evt):
     if _is_question(text):
         threading.Thread(target=answer_question, args=(text,), daemon=True).start()
 
-    # 발음 평가 점수 추출
+    # Extract pronunciation assessment scores
     try:
         pron = speechsdk.PronunciationAssessmentResult(evt.result)
         entry = {
@@ -162,7 +162,7 @@ def on_recognized(evt):
     except Exception:
         pass
 
-# AI Tutor 답변
+# AI Tutor response
 def answer_question(question: str):
     send_sync("qa_thinking", {"question": question})
     try:
@@ -190,7 +190,7 @@ def answer_question(question: str):
     except Exception as e:
         send_sync("qa_error", {"error": str(e)})
 
-# 발음 평균 계산 헬퍼
+# Pronunciation average calculator
 def calc_pron_summary() -> dict:
     if not state.pron_scores:
         return {}
@@ -203,7 +203,7 @@ def calc_pron_summary() -> dict:
         "detail":       state.pron_scores,
     }
 
-# 피드백 생성 헬퍼 (stop + get-feedback 둘 다 재사용)
+# Feedback builder — reused by /session/stop and /generate-feedback
 def build_feedback(transcript: str, question: str, part: int, pron_summary: dict) -> dict:
     pron_text = json.dumps(pron_summary) if pron_summary else "Not available"
     pron_score_val = pron_summary.get("pron_score", 0) / 10 if pron_summary else 6.5
@@ -271,7 +271,7 @@ Return exactly this JSON:
     except Exception as e:
         return {"error": str(e)}
 
-# 세션 시작
+# Session start
 class SessionStart(BaseModel):
     member:  str
     targets: list[str]
@@ -284,7 +284,7 @@ async def session_start(body: SessionStart):
     state.active  = True
     return {"status": "ok"}
 
-# 세션 종료 — PII 마스킹 후 자동 피드백 생성
+# Session stop — PII mask transcript then auto-generate feedback
 @app.post("/session/stop")
 async def session_stop():
     if state.recognizer:
@@ -294,10 +294,10 @@ async def session_stop():
     pron_summary = calc_pron_summary()
     full_text    = " ".join(state.full_transcript)
 
-    # 전사 텍스트 PII 마스킹
+    # Mask PII from transcript
     masked_full = mask_pii(full_text) if full_text.strip() else ""
 
-    # 자동 피드백 생성 (마스킹된 텍스트 사용)
+    # Auto-generate feedback using masked transcript
     auto_feedback = None
     if masked_full.strip():
         auto_feedback = build_feedback(
@@ -316,19 +316,19 @@ async def session_stop():
         "full_transcript": masked_full,   # 마스킹된 버전 반환
     }
 
-# PII 마스킹
+# PII masking endpoint
 @app.post("/mask-pii")
 async def mask_pii_endpoint(body: dict):
     text   = body.get("text", "")
     masked = mask_pii(text)
     return {"original": text, "masked": masked}
 
-# 발음 점수 조회 (세션 중 실시간 조회용)
+# Pronunciation score endpoint (real-time during session)
 @app.get("/pron-summary")
 async def get_pron_summary():
     return calc_pron_summary()
 
-# 문제 생성
+# Question generation
 class QuestionRequest(BaseModel):
     part:  int = 2
     topic: str = ""
@@ -375,7 +375,7 @@ For Part 1 and 3, bullet_points must be []."""},
         return {"error": str(e), "part": req.part, "topic": "", "question": f"Error: {e}",
                 "bullet_points": [], "prep_seconds": 15, "answer_seconds": 120}
 
-# Target expression 생성
+# Target expression generation
 @app.post("/generate-targets")
 async def generate_targets():
     try:
@@ -399,7 +399,7 @@ Return exactly: {"expressions": ["expr1","expr2","expr3","expr4","expr5"]}"""},
             "boost my confidence", "on the other hand", "quite challenging",
         ]}
 
-# 피드백 생성 (Get Feedback 버튼용)
+# Feedback generation (Get Feedback button)
 class FeedbackRequest(BaseModel):
     transcript:   str
     question:     str
@@ -408,7 +408,7 @@ class FeedbackRequest(BaseModel):
 
 @app.post("/generate-feedback")
 async def generate_feedback(req: FeedbackRequest):
-    # 전사 텍스트 PII 마스킹 후 피드백
+    # Mask PII then generate feedback
     masked = mask_pii(req.transcript) if req.transcript.strip() else req.transcript
     return build_feedback(
         transcript   = masked,
@@ -417,7 +417,7 @@ async def generate_feedback(req: FeedbackRequest):
         pron_summary = req.pron_summary,
     )
 
-# WebSocket — STT + 발음 평가
+# WebSocket — STT + Pronunciation Assessment
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
@@ -427,7 +427,7 @@ async def websocket_endpoint(ws: WebSocket):
     cfg = speechsdk.SpeechConfig(subscription=SPEECH_KEY, region=SPEECH_REGION)
     cfg.speech_recognition_language = "en-US"
 
-    # 발음 평가 설정
+    # Pronunciation assessment config
     pron_config = speechsdk.PronunciationAssessmentConfig(
         grading_system=speechsdk.PronunciationAssessmentGradingSystem.HundredMark,
         granularity=speechsdk.PronunciationAssessmentGranularity.Phoneme,
