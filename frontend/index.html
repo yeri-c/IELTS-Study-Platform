@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IELTS Study Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:       #07090f;
+  --surface:  #0e1422;
+  --surface2: #141c2e;
+  --border:   #1e2d48;
+  --border2:  #263550;
+  --text:     #f0f2f8;
+  --muted:    #8b97b4;
+  --blue:     #4f8ef7;
+  --purple:   #9b6dff;
+  --teal:     #2dd4bf;
+  --amber:    #fbbf24;
+  --green:    #34d399;
+  --red:      #f87171;
+  --mono:     'JetBrains Mono', monospace;
+  --sans:     'Plus Jakarta Sans', system-ui, sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;min-height:100vh}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── confetti ── */
+@keyframes cf{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(140px) rotate(800deg);opacity:0}}
+.cf{position:fixed;width:9px;height:9px;border-radius:2px;pointer-events:none;animation:cf 1s ease-out forwards;z-index:999}
+
+/* ── toast ── */
+@keyframes toast-in{0%{opacity:0;transform:translateX(-50%) translateY(-12px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);
+  padding:10px 28px;border-radius:50px;font-size:15px;font-weight:600;
+  z-index:200;animation:toast-in .3s ease-out;white-space:nowrap}
+
+/* ── live dot ── */
+@keyframes lp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.5)}}
+.ldot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;animation:lp 1.4s ease-in-out infinite}
+
+/* ── mark ── */
+mark.hl{background:#fde047;color:#1a1000;border-radius:4px;padding:1px 5px;font-weight:700}
+
+/* ── panel ── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.ptitle{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+
+/* ── buttons ── */
+.btn{border:none;cursor:pointer;border-radius:12px;font-family:var(--sans);font-weight:600;
+  padding:11px 20px;font-size:15px;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{filter:brightness(1.12)}
+.btn:active{transform:scale(.97)}
+.btn-blue  {background:linear-gradient(135deg,#3b6ef0,#6b4ef7);color:#fff;box-shadow:0 4px 16px rgba(100,100,255,.25)}
+.btn-green {background:linear-gradient(135deg,#059669,#34d399);color:#fff;box-shadow:0 4px 16px rgba(52,211,153,.25)}
+.btn-red   {background:linear-gradient(135deg,#dc2626,#f87171);color:#fff;box-shadow:0 4px 16px rgba(248,113,113,.25)}
+.btn-amber {background:linear-gradient(135deg,#d97706,#fbbf24);color:#1a0f00;box-shadow:0 4px 16px rgba(251,191,36,.2)}
+.btn-purple{background:linear-gradient(135deg,#7c3aed,#9b6dff);color:#fff;box-shadow:0 4px 16px rgba(155,109,255,.25)}
+.btn-ghost {background:var(--surface2);color:var(--muted);border:1px solid var(--border2)}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:9px}
+
+/* ── input ── */
+.inp{background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:9px 14px;font-size:14px;color:var(--text);font-family:var(--sans);width:100%;
+  transition:border-color .15s;outline:none}
+.inp:focus{border-color:var(--blue)}
+
+/* ── band badge ── */
+.band{display:inline-block;padding:4px 14px;border-radius:30px;font-weight:700;font-size:15px;font-family:var(--mono)}
+
+/* ── score row ── */
+.score-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.score-row:last-child{border-bottom:none}
+
+/* ── feedback section ── */
+.fb-section{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px}
+.fb-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+
+/* ── improved response ── */
+.improved{background:linear-gradient(135deg,#0a1628,#111830);border:1px solid #2a3a6a;
+  border-radius:14px;padding:18px;position:relative;overflow:hidden}
+.improved::before{content:"Band 7–8";position:absolute;top:12px;right:14px;
+  font-size:10px;font-weight:700;color:#4f8ef7;letter-spacing:.06em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback} = React;
+const API="http://localhost:8000";
+const WS ="ws://localhost:8000/ws";
+const CC =["#fbbf24","#f87171","#60a5fa","#34d399","#c084fc","#fb923c","#f472b6"];
+
+function burst(x,y){
+  for(let i=0;i<26;i++){
+    const el=document.createElement("div");
+    el.className="cf";
+    el.style.cssText=`left:${x+(Math.random()-.5)*80}px;top:${y-10}px;background:${CC[Math.floor(Math.random()*CC.length)]};animation-delay:${Math.random()*.35}s;animation-duration:${.75+Math.random()*.5}s`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1600);
+  }
+}
+
+function bandColor(s){
+  if(!s) return "#8b97b4";
+  if(s>=8)  return "#34d399";
+  if(s>=7)  return "#60a5fa";
+  if(s>=6)  return "#fbbf24";
+  return "#f87171";
+}
+
+function useTimer(onDone){
+  const [secs,setSecs]=useState(null);
+  const [total,setTotal]=useState(1);
+  const ref=useRef(null);
+  const start=useCallback((s)=>{
+    setTotal(s);setSecs(s);clearInterval(ref.current);
+    ref.current=setInterval(()=>{
+      setSecs(prev=>{if(prev<=1){clearInterval(ref.current);onDone?.();return 0;}return prev-1;});
+    },1000);
+  },[onDone]);
+  const stop=()=>{clearInterval(ref.current);setSecs(null);};
+  return{secs,total,start,stop};
+}
+
+function CircleTimer({secs,total,color}){
+  if(secs===null) return null;
+  const r=46,circ=2*Math.PI*r,pct=total>0?secs/total:0;
+  const mm=String(Math.floor(secs/60)).padStart(2,"0");
+  const ss=String(secs%60).padStart(2,"0");
+  return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+      <svg width="108" height="108" viewBox="0 0 108 108">
+        <circle cx="54" cy="54" r={r} fill="none" stroke="var(--surface2)" strokeWidth="7"/>
+        <circle cx="54" cy="54" r={r} fill="none" stroke={color} strokeWidth="7"
+          strokeDasharray={circ} strokeDashoffset={circ*(1-pct)}
+          strokeLinecap="round" transform="rotate(-90 54 54)"
+          style={{transition:"stroke-dashoffset 1s linear"}}/>
+        <text x="54" y="60" textAnchor="middle"
+          style={{fontFamily:"var(--mono)",fontSize:"22px",fill:color,fontWeight:500}}>
+          {mm}:{ss}
+        </text>
+      </svg>
+      <p style={{fontSize:12,color:"var(--muted)",letterSpacing:".06em",textTransform:"uppercase"}}>
+        {color==="#fbbf24"?"Preparation":"Speaking"}
+      </p>
+    </div>
+  );
+}
+
+/* ── Feedback Panel ─────────────────────────────────────────── */
+function FeedbackPanel({feedback, loading, transcript, question, part, onGenerate}){
+  const categories=[
+    {key:"fluency_coherence", label:"Fluency & Coherence", color:"#60a5fa"},
+    {key:"lexical_resource",  label:"Lexical Resource",    color:"#34d399"},
+    {key:"grammatical_range", label:"Grammar",             color:"#fbbf24"},
+    {key:"pronunciation",     label:"Pronunciation",       color:"#c084fc"},
+  ];
+
+  return(
+    <div className="panel" style={{gridColumn:"1/-1"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+        <span className="ptitle" style={{color:"#f87171",fontSize:13}}>⑤ Speaking Feedback</span>
+        <button className="btn btn-red"
+          onClick={onGenerate}
+          disabled={loading||!transcript.trim()}
+          style={{opacity:(!transcript.trim()||loading)?0.5:1}}>
+          {loading?"Analysing...":"Get IELTS Feedback"}
+        </button>
+      </div>
+
+      {!transcript.trim()&&!loading&&!feedback&&(
+        <p style={{fontSize:14,color:"var(--muted)",lineHeight:1.6}}>
+          After your speaking turn, click <strong style={{color:"var(--text)"}}>Get IELTS Feedback</strong>.
+        </p>
+      )}
+
+      <div>
+        <p style={{fontSize:12,color:"var(--muted)",marginBottom:6}}>
+          Your answer transcript
+          <span style={{color:"var(--border2)",marginLeft:6}}>(auto-filled from live session, or paste manually)</span>
+        </p>
+        <textarea className="inp" rows={3}
+          style={{resize:"vertical",lineHeight:1.6,fontSize:14}}
+          value={transcript} readOnly
+          placeholder="Transcript appears here after speaking..."/>
+      </div>
+
+      {loading&&(
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 0"}}>
+          <div style={{width:20,height:20,border:"2px solid var(--border)",
+            borderTopColor:"var(--red)",borderRadius:"50%",
+            animation:"lp .8s linear infinite"}}/>
+          <span style={{color:"var(--muted)",fontSize:14}}>
+            Analysing your response against IELTS criteria...
+          </span>
+        </div>
+      )}
+
+      {feedback&&!feedback.error&&(
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+          {/* overall band */}
+          <div style={{display:"flex",alignItems:"center",gap:16,
+            background:"var(--surface2)",borderRadius:16,padding:"18px 22px",
+            border:"1px solid var(--border)"}}>
+            <div style={{textAlign:"center",minWidth:88}}>
+              <p style={{fontSize:11,color:"var(--muted)",letterSpacing:".08em",
+                textTransform:"uppercase",marginBottom:6}}>Overall</p>
+              <span className="band" style={{
+                background:bandColor(feedback.band_score)+"22",
+                color:bandColor(feedback.band_score),
+                border:`1px solid ${bandColor(feedback.band_score)}44`,
+                fontSize:34}}>
+                {feedback.band_score}
+              </span>
+            </div>
+            <div style={{flex:1,display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 24px"}}>
+              {categories.map(c=>{
+                const s=feedback[c.key]?.score;
+                return(
+                  <div key={c.key} style={{display:"flex",justifyContent:"space-between",
+                    alignItems:"center",padding:"4px 0",
+                    borderBottom:"1px solid var(--border)"}}>
+                    <span style={{fontSize:13,color:"var(--muted)"}}>{c.label}</span>
+                    <span style={{fontFamily:"var(--mono)",fontSize:15,fontWeight:600,
+                      color:bandColor(s)}}>{s||"—"}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* pronunciation azure gauges — shown when pron data exists in feedback */}
+          {feedback.pronunciation&&(
+            feedback.pronunciation.accuracy_score>0||
+            feedback.pronunciation.fluency_score>0
+          )&&(
+            <div style={{background:"#0f0a1e",border:"1px solid #3b1f6a",
+              borderRadius:16,padding:18}}>
+              <p style={{fontSize:12,fontWeight:700,color:"#c084fc",letterSpacing:".08em",
+                textTransform:"uppercase",marginBottom:14}}>
+                Azure Pronunciation Assessment
+              </p>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+                {[
+                  {label:"Overall",      val:feedback.pronunciation.pron_score||
+                    Math.round(feedback.pronunciation.score*10)},
+                  {label:"Accuracy",     val:feedback.pronunciation.accuracy_score},
+                  {label:"Fluency",      val:feedback.pronunciation.fluency_score},
+                  {label:"Completeness", val:feedback.pronunciation.completeness_score||0},
+                ].map(s=>{
+                  const v=s.val||0;
+                  const c=v>=80?"#34d399":v>=60?"#fbbf24":"#f87171";
+                  return(
+                    <div key={s.label} style={{textAlign:"center"}}>
+                      <svg width="72" height="72" viewBox="0 0 72 72">
+                        <circle cx="36" cy="36" r="28" fill="none"
+                          stroke="var(--surface2)" strokeWidth="5"/>
+                        <circle cx="36" cy="36" r="28" fill="none"
+                          stroke={c} strokeWidth="5"
+                          strokeDasharray={2*Math.PI*28}
+                          strokeDashoffset={2*Math.PI*28*(1-v/100)}
+                          strokeLinecap="round" transform="rotate(-90 36 36)"
+                          style={{transition:"stroke-dashoffset .8s ease"}}/>
+                        <text x="36" y="41" textAnchor="middle"
+                          style={{fontFamily:"var(--mono)",fontSize:"14px",
+                            fill:c,fontWeight:600}}>
+                          {v||"—"}
+                        </text>
+                      </svg>
+                      <p style={{fontSize:11,color:"var(--muted)",marginTop:2}}>{s.label}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              <p style={{fontSize:13,color:"#c4b5fd",lineHeight:1.6}}>
+                {feedback.pronunciation.comment}
+              </p>
+              {feedback.pronunciation.specific_improvements?.length>0&&(
+                <div style={{marginTop:10}}>
+                  <p style={{fontSize:11,color:"var(--amber)",fontWeight:700,marginBottom:6}}>
+                    ↑ Pronunciation tips
+                  </p>
+                  {feedback.pronunciation.specific_improvements.map((s,i)=>(
+                    <p key={i} style={{fontSize:13,color:"var(--text)",
+                      paddingLeft:10,marginBottom:3}}>• {s}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* per-category (fluency, lexical, grammar only — pron already shown above) */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+            {categories.slice(0,3).map(c=>{
+              const d=feedback[c.key];
+              if(!d) return null;
+              return(
+                <div key={c.key} style={{background:"var(--surface2)",
+                  border:"1px solid var(--border)",borderRadius:14,padding:16}}>
+                  <div style={{display:"flex",justifyContent:"space-between",
+                    alignItems:"center",marginBottom:10}}>
+                    <p style={{fontSize:11,fontWeight:700,color:c.color,
+                      letterSpacing:".07em",textTransform:"uppercase"}}>{c.label}</p>
+                    <span style={{fontFamily:"var(--mono)",fontSize:16,fontWeight:700,
+                      color:bandColor(d.score)}}>{d.score}</span>
+                  </div>
+                  <p style={{fontSize:13,color:"var(--muted)",lineHeight:1.6,marginBottom:10}}>
+                    {d.comment}
+                  </p>
+                  {d.strengths?.length>0&&(
+                    <div style={{marginBottom:8}}>
+                      <p style={{fontSize:11,color:"var(--green)",fontWeight:700,marginBottom:4}}>
+                        ✓ Strengths
+                      </p>
+                      {d.strengths.map((s,i)=>(
+                        <p key={i} style={{fontSize:13,color:"var(--text)",
+                          paddingLeft:10,marginBottom:2}}>• {s}</p>
+                      ))}
+                    </div>
+                  )}
+                  {d.improvements?.length>0&&(
+                    <div style={{marginBottom:8}}>
+                      <p style={{fontSize:11,color:"var(--red)",fontWeight:700,marginBottom:4}}>
+                        ↑ Improve
+                      </p>
+                      {d.improvements.map((s,i)=>(
+                        <p key={i} style={{fontSize:13,color:"var(--text)",
+                          paddingLeft:10,marginBottom:2}}>• {s}</p>
+                      ))}
+                    </div>
+                  )}
+                  {d.good_expressions?.length>0&&(
+                    <div style={{marginBottom:8}}>
+                      <p style={{fontSize:11,color:"var(--green)",fontWeight:700,marginBottom:4}}>
+                        ✓ Good expressions
+                      </p>
+                      {d.good_expressions.map((s,i)=>(
+                        <p key={i} style={{fontSize:13,color:"var(--text)",
+                          paddingLeft:10,marginBottom:2}}>• {s}</p>
+                      ))}
+                    </div>
+                  )}
+                  {d.suggestions?.length>0&&(
+                    <div style={{marginBottom:8}}>
+                      <p style={{fontSize:11,color:"var(--amber)",fontWeight:700,marginBottom:4}}>
+                        → Try instead
+                      </p>
+                      {d.suggestions.map((s,i)=>(
+                        <p key={i} style={{fontSize:13,color:"var(--text)",
+                          paddingLeft:10,marginBottom:2}}>• {s}</p>
+                      ))}
+                    </div>
+                  )}
+                  {d.errors?.length>0&&(
+                    <div>
+                      <p style={{fontSize:11,color:"var(--red)",fontWeight:700,marginBottom:4}}>
+                        ✗ Corrections
+                      </p>
+                      {d.errors.map((e,i)=>(
+                        <div key={i} style={{fontSize:13,paddingLeft:10,marginBottom:6}}>
+                          <span style={{color:"var(--red)",textDecoration:"line-through"}}>
+                            {e.original}
+                          </span>
+                          <span style={{color:"var(--muted)",margin:"0 6px"}}>→</span>
+                          <span style={{color:"var(--green)"}}>{e.corrected}</span>
+                          {e.rule&&(
+                            <p style={{fontSize:12,color:"var(--muted)",marginTop:2,paddingLeft:4}}>
+                              {e.rule}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* model answer */}
+          {feedback.improved_response&&(
+            <div style={{background:"linear-gradient(135deg,#0a1628,#111830)",
+              border:"1px solid #2a3a6a",borderRadius:16,padding:20,position:"relative"}}>
+              <span style={{position:"absolute",top:14,right:16,fontSize:10,fontWeight:700,
+                color:"var(--blue)",letterSpacing:".06em",textTransform:"uppercase"}}>
+                Band 7–8 Model Answer
+              </span>
+              <p style={{fontSize:15,color:"#c7d4f0",lineHeight:1.85,marginTop:8}}>
+                {feedback.improved_response}
+              </p>
+            </div>
+          )}
+
+          {/* key phrases */}
+          {feedback.key_phrases_to_practice?.length>0&&(
+            <div style={{background:"var(--surface2)",border:"1px solid var(--border)",
+              borderRadius:14,padding:16}}>
+              <p style={{fontSize:12,fontWeight:700,color:"var(--purple)",letterSpacing:".08em",
+                textTransform:"uppercase",marginBottom:10}}>
+                Practice These Phrases
+              </p>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {feedback.key_phrases_to_practice.map((p,i)=>(
+                  <span key={i} style={{padding:"7px 16px",borderRadius:30,
+                    background:"#1a1030",border:"1px solid #3b1f6a",
+                    fontSize:14,color:"#ddd6fe",fontWeight:500}}>{p}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {feedback?.error&&(
+        <p style={{color:"var(--red)",fontSize:14}}>Error: {feedback.error}</p>
+      )}
+    </div>
+  );
+}
+
+/* ── Report Modal ───────────────────────────────────────────── */
+function ReportModal({report, onClose, onNew}){
+  if(!report) return null;
+  const total = Object.values(report.scoreboard).reduce((a,b)=>a+b,0);
+  const fb    = report.autoFeedback;
+  const pron  = report.pronSummary;
+
+  const categories = [
+    {key:"fluency_coherence", label:"Fluency & Coherence", color:"#60a5fa"},
+    {key:"lexical_resource",  label:"Lexical Resource",    color:"#34d399"},
+    {key:"grammatical_range", label:"Grammar",             color:"#fbbf24"},
+    {key:"pronunciation",     label:"Pronunciation",       color:"#c084fc"},
+  ];
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:50,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto"}}>
+      <div style={{background:"var(--surface)",borderRadius:24,border:"1px solid var(--border)",
+        width:"100%",maxWidth:720,padding:30,margin:"auto"}}>
+
+        {/* header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
+          <div>
+            <h2 style={{fontSize:22,fontWeight:700,color:"var(--text)"}}>Session Report</h2>
+            <p style={{fontSize:13,color:"var(--muted)",marginTop:3}}>{report.member} · {report.time}</p>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+
+        {/* stats */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:22}}>
+          {[
+            {label:"Target Hits",  val:total,                                                   color:"var(--amber)"},
+            {label:"Questions",    val:report.qaLog.length,                                     color:"var(--purple)"},
+            {label:"Band Score",   val:fb?.band_score||"—",                                     color:"var(--blue)"},
+          ].map(s=>(
+            <div key={s.label} style={{background:"var(--bg)",borderRadius:14,padding:"16px 10px",textAlign:"center"}}>
+              <p style={{fontSize:30,fontWeight:700,color:s.color,fontFamily:"var(--mono)"}}>{s.val}</p>
+              <p style={{fontSize:12,color:"var(--muted)",marginTop:4}}>{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* pronunciation azure scores */}
+        {pron && (
+          <div style={{background:"#0f0a1e",border:"1px solid #3b1f6a",borderRadius:16,
+            padding:18,marginBottom:22}}>
+            <p style={{fontSize:12,fontWeight:700,color:"#c084fc",letterSpacing:".08em",
+              textTransform:"uppercase",marginBottom:14}}>
+              Azure Pronunciation Assessment
+            </p>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+              {[
+                {label:"Overall",     val:pron.pron_score},
+                {label:"Accuracy",    val:pron.accuracy},
+                {label:"Fluency",     val:pron.fluency},
+                {label:"Completeness",val:pron.completeness},
+              ].map(s=>{
+                const color = s.val>=80?"#34d399":s.val>=60?"#fbbf24":"#f87171";
+                return(
+                  <div key={s.label} style={{textAlign:"center"}}>
+                    <svg width="72" height="72" viewBox="0 0 72 72">
+                      <circle cx="36" cy="36" r="28" fill="none" stroke="var(--surface2)" strokeWidth="5"/>
+                      <circle cx="36" cy="36" r="28" fill="none" stroke={color} strokeWidth="5"
+                        strokeDasharray={2*Math.PI*28}
+                        strokeDashoffset={2*Math.PI*28*(1-s.val/100)}
+                        strokeLinecap="round" transform="rotate(-90 36 36)"
+                        style={{transition:"stroke-dashoffset .8s ease"}}/>
+                      <text x="36" y="41" textAnchor="middle"
+                        style={{fontFamily:"var(--mono)",fontSize:"14px",fill:color,fontWeight:600}}>
+                        {s.val}
+                      </text>
+                    </svg>
+                    <p style={{fontSize:11,color:"var(--muted)",marginTop:2}}>{s.label}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* IELTS feedback scores grid */}
+        {fb && !fb.error && (
+          <>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:22}}>
+              {categories.map(c=>{
+                const d = fb[c.key];
+                if(!d) return null;
+                return(
+                  <div key={c.key} style={{background:"var(--surface2)",border:"1px solid var(--border)",
+                    borderRadius:14,padding:16}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                      <p style={{fontSize:12,fontWeight:700,color:c.color,
+                        letterSpacing:".07em",textTransform:"uppercase"}}>{c.label}</p>
+                      <span style={{fontFamily:"var(--mono)",fontSize:18,fontWeight:700,
+                        color:bandColor(d.score)}}>{d.score}</span>
+                    </div>
+                    <p style={{fontSize:13,color:"var(--muted)",lineHeight:1.6,marginBottom:10}}>{d.comment}</p>
+
+                    {d.strengths?.length>0&&(
+                      <div style={{marginBottom:8}}>
+                        <p style={{fontSize:11,color:"var(--green)",fontWeight:700,marginBottom:4}}>✓ Strengths</p>
+                        {d.strengths.map((s,i)=>(
+                          <p key={i} style={{fontSize:13,color:"var(--text)",paddingLeft:10,marginBottom:2}}>• {s}</p>
+                        ))}
+                      </div>
+                    )}
+                    {d.improvements?.length>0&&(
+                      <div style={{marginBottom:8}}>
+                        <p style={{fontSize:11,color:"var(--red)",fontWeight:700,marginBottom:4}}>↑ Improve</p>
+                        {d.improvements.map((s,i)=>(
+                          <p key={i} style={{fontSize:13,color:"var(--text)",paddingLeft:10,marginBottom:2}}>• {s}</p>
+                        ))}
+                      </div>
+                    )}
+                    {d.suggestions?.length>0&&(
+                      <div style={{marginBottom:8}}>
+                        <p style={{fontSize:11,color:"var(--amber)",fontWeight:700,marginBottom:4}}>→ Try instead</p>
+                        {d.suggestions.map((s,i)=>(
+                          <p key={i} style={{fontSize:13,color:"var(--text)",paddingLeft:10,marginBottom:2}}>• {s}</p>
+                        ))}
+                      </div>
+                    )}
+                    {d.good_expressions?.length>0&&(
+                      <div style={{marginBottom:8}}>
+                        <p style={{fontSize:11,color:"var(--green)",fontWeight:700,marginBottom:4}}>✓ Good expressions</p>
+                        {d.good_expressions.map((s,i)=>(
+                          <p key={i} style={{fontSize:13,color:"var(--text)",paddingLeft:10,marginBottom:2}}>• {s}</p>
+                        ))}
+                      </div>
+                    )}
+                    {d.errors?.length>0&&(
+                      <div>
+                        <p style={{fontSize:11,color:"var(--red)",fontWeight:700,marginBottom:4}}>✗ Corrections</p>
+                        {d.errors.map((e,i)=>(
+                          <div key={i} style={{fontSize:13,paddingLeft:10,marginBottom:6}}>
+                            <span style={{color:"var(--red)",textDecoration:"line-through"}}>{e.original}</span>
+                            <span style={{color:"var(--muted)",margin:"0 6px"}}>→</span>
+                            <span style={{color:"var(--green)"}}>{e.corrected}</span>
+                            {e.rule&&<p style={{fontSize:12,color:"var(--muted)",marginTop:2}}>{e.rule}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* pronunciation specific */}
+                    {d.specific_improvements?.length>0&&(
+                      <div>
+                        <p style={{fontSize:11,color:"var(--amber)",fontWeight:700,marginBottom:4}}>↑ Pronunciation tips</p>
+                        {d.specific_improvements.map((s,i)=>(
+                          <p key={i} style={{fontSize:13,color:"var(--text)",paddingLeft:10,marginBottom:2}}>• {s}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* model answer */}
+            {fb.improved_response&&(
+              <div style={{background:"linear-gradient(135deg,#0a1628,#111830)",
+                border:"1px solid #2a3a6a",borderRadius:16,padding:20,marginBottom:16,
+                position:"relative"}}>
+                <span style={{position:"absolute",top:14,right:16,fontSize:10,fontWeight:700,
+                  color:"var(--blue)",letterSpacing:".06em",textTransform:"uppercase"}}>
+                  Band 7–8 Model Answer
+                </span>
+                <p style={{fontSize:15,color:"#c7d4f0",lineHeight:1.85,marginTop:8}}>
+                  {fb.improved_response}
+                </p>
+              </div>
+            )}
+
+            {/* key phrases */}
+            {fb.key_phrases_to_practice?.length>0&&(
+              <div style={{background:"var(--surface2)",border:"1px solid var(--border)",
+                borderRadius:14,padding:16,marginBottom:22}}>
+                <p style={{fontSize:12,fontWeight:700,color:"var(--purple)",
+                  letterSpacing:".08em",textTransform:"uppercase",marginBottom:10}}>
+                  Practice These Phrases
+                </p>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {fb.key_phrases_to_practice.map((p,i)=>(
+                    <span key={i} style={{padding:"7px 16px",borderRadius:30,
+                      background:"#1a1030",border:"1px solid #3b1f6a",
+                      fontSize:14,color:"#ddd6fe",fontWeight:500}}>{p}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* target scoreboard */}
+        {Object.keys(report.scoreboard).length>0&&(
+          <div style={{marginBottom:22}}>
+            <p style={{fontSize:12,fontWeight:700,color:"var(--amber)",letterSpacing:".08em",
+              textTransform:"uppercase",marginBottom:10}}>Target Expressions</p>
+            {Object.entries(report.scoreboard).map(([expr,cnt])=>{
+              const max=Math.max(...Object.values(report.scoreboard),1);
+              return(
+                <div key={expr} style={{marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:14,marginBottom:4}}>
+                    <span style={{color:cnt>0?"var(--text)":"var(--muted)"}}>{expr}</span>
+                    <span style={{color:cnt>0?"var(--amber)":"var(--muted)",
+                      fontFamily:"var(--mono)",fontWeight:600}}>{cnt}×</span>
+                  </div>
+                  <div style={{height:5,background:"var(--bg)",borderRadius:5,overflow:"hidden"}}>
+                    <div style={{height:"100%",
+                      background:"linear-gradient(90deg,#d97706,#fbbf24)",
+                      borderRadius:5,width:`${Math.round(cnt/max*100)}%`,
+                      transition:"width .5s"}}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Q&A */}
+        {report.qaLog.length>0&&(
+          <div style={{marginBottom:24}}>
+            <p style={{fontSize:12,fontWeight:700,color:"var(--purple)",letterSpacing:".08em",
+              textTransform:"uppercase",marginBottom:10}}>Q&A Log</p>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {report.qaLog.map((q,i)=>(
+                <div key={i}>
+                  <div style={{background:"var(--surface2)",borderRadius:10,padding:12,marginBottom:5}}>
+                    <p style={{fontSize:11,color:"var(--muted)",marginBottom:3,
+                      fontFamily:"var(--mono)"}}>{q.time}</p>
+                    <p style={{fontSize:14,color:"var(--text)"}}>{q.question}</p>
+                  </div>
+                  <div style={{background:"#1a1030",border:"1px solid #3b1f6a",
+                    borderRadius:10,padding:12}}>
+                    <p style={{fontSize:14,color:"#ddd6fe",lineHeight:1.6}}>{q.answer||"..."}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{display:"flex",gap:10}}>
+          <button className="btn btn-green" style={{flex:1}} onClick={onNew}>New Session</button>
+          <button className="btn btn-ghost" style={{flex:1}} onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main App ───────────────────────────────────────────────── */
+function App(){
+  const [member,     setMember]     = useState("Alice");
+  const [targets,    setTargets]    = useState("in terms of, make a huge difference, boost my confidence, on the other hand, quite challenging");
+  const [sessionOn,  setSessionOn]  = useState(false);
+  const [transcript, setTranscript] = useState([]);
+  const [scoreboard, setScoreboard] = useState({});
+  const [qaLog,      setQaLog]      = useState([]);
+  const [question,   setQuestion]   = useState(null);
+  const [timerMode,  setTimerMode]  = useState(null);
+  const [part,       setPart]       = useState(2);
+  const [loadingQ,   setLoadingQ]   = useState(false);
+  const [loadingT,   setLoadingT]   = useState(false);
+  const [report,     setReport]     = useState(null);
+  const [lastHit,    setLastHit]    = useState(null);
+  const [feedback,   setFeedback]   = useState(null);
+  const [loadingFb,  setLoadingFb]  = useState(false);
+  const [fbTranscript,setFbTranscript]=useState("");
+
+  const wsRef  = useRef(null);
+  const txRef  = useRef(null);
+  const bufRef = useRef([]);
+
+  const prepTimer   = useTimer(()=>setTimerMode("answer"));
+  const answerTimer = useTimer(()=>setTimerMode("done"));
+
+  useEffect(()=>{
+    if(timerMode==="prep")   prepTimer.start(15);
+    if(timerMode==="answer") answerTimer.start(part===1?45:part===2?120:90);
+  },[timerMode]);
+
+  useEffect(()=>{
+    if(txRef.current) txRef.current.scrollTop=txRef.current.scrollHeight;
+  },[transcript]);
+
+  // auto-fill feedback transcript from live session
+  useEffect(()=>{
+    if(transcript.length>0){
+      const full=transcript.map(t=>t.text).join(" ");
+      setFbTranscript(full);
+    }
+  },[transcript]);
+
+  useEffect(()=>{
+    if(!sessionOn) return;
+    const timer=setTimeout(()=>{
+      const ws=new WebSocket(WS);
+      wsRef.current=ws;
+      ws.onmessage=async(e)=>{
+        const msg=JSON.parse(e.data);
+        if(msg.event==="transcript"){
+          let masked=msg.text;
+          try{
+            const r=await fetch(`${API}/mask-pii`,{method:"POST",
+              headers:{"Content-Type":"application/json"},
+              body:JSON.stringify({text:msg.text})});
+            masked=(await r.json()).masked;
+          }catch(_){}
+          const entry={text:msg.text,masked,time:msg.time,hits:[]};
+          bufRef.current=[...bufRef.current.slice(-49),entry];
+          setTranscript([...bufRef.current]);
+        }
+        if(msg.event==="target_hit"){
+          setScoreboard(prev=>({...prev,[msg.expr]:msg.count}));
+          setLastHit(msg.expr);
+          burst(window.innerWidth/2,120);
+          bufRef.current=bufRef.current.map((t,i)=>
+            i!==bufRef.current.length-1?t:{...t,hits:[...(t.hits||[]),msg.expr]}
+          );
+          setTranscript([...bufRef.current]);
+          setTimeout(()=>setLastHit(null),2200);
+        }
+        if(msg.event==="qa_thinking")
+          setQaLog(prev=>[...prev,{question:msg.question,answer:null,time:""}]);
+        if(msg.event==="qa_answer")
+          setQaLog(prev=>prev.map((q,i)=>
+            i===prev.length-1?{...q,answer:msg.answer,time:msg.time}:q));
+      };
+    },500);
+    return()=>clearTimeout(timer);
+  },[sessionOn]);
+
+  const startSession=async()=>{
+    await fetch(`${API}/session/start`,{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({member,targets:targets.split(",").map(t=>t.trim()).filter(Boolean)})});
+    bufRef.current=[];
+    setTranscript([]);setScoreboard({});setQaLog([]);
+    setFeedback(null);setFbTranscript("");
+    setSessionOn(true);
+  };
+
+  const stopSession=async()=>{
+    wsRef.current?.close();
+    const data=await(await fetch(`${API}/session/stop`,{method:"POST"})).json();
+    setSessionOn(false);
+    setReport({
+      member,
+      time:          new Date().toLocaleTimeString(),
+      scoreboard:    {...scoreboard, ...data.scoreboard},
+      qaLog,
+      transcript:    bufRef.current,
+      autoFeedback:  data.auto_feedback,
+      pronSummary:   data.pron_summary,
+      fullTranscript:data.full_transcript,
+    });
+  };
+
+  const handleNew=()=>{
+    setReport(null);bufRef.current=[];
+    setTranscript([]);setScoreboard({});setQaLog([]);
+    setQuestion(null);setTimerMode(null);setFeedback(null);setFbTranscript("");
+  };
+
+  const generateQuestion=async()=>{
+    setLoadingQ(true);setTimerMode(null);prepTimer.stop();answerTimer.stop();
+    setQuestion(await(await fetch(`${API}/generate-question`,{method:"POST",
+      headers:{"Content-Type":"application/json"},body:JSON.stringify({part})})).json());
+    setLoadingQ(false);
+  };
+
+  const generateTargets=async()=>{
+    setLoadingT(true);
+    try{
+      const d=await(await fetch(`${API}/generate-targets`,{method:"POST"})).json();
+      if(d.expressions) setTargets(d.expressions.join(", "));
+    }catch(_){}
+    setLoadingT(false);
+  };
+
+  const getFeedback=async()=>{
+    if(!fbTranscript.trim()) return;
+    setLoadingFb(true); setFeedback(null);
+    try{
+      // 현재까지 누적된 발음 점수를 백엔드에서 가져오기
+      let pronData = null;
+      try{
+        const pr = await fetch(`${API}/pron-summary`);
+        pronData = await pr.json();
+      }catch(_){}
+
+      const res=await fetch(`${API}/generate-feedback`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          transcript: fbTranscript,
+          question:   question?.question||"IELTS Speaking question",
+          part,
+          pron_summary: pronData,
+        }),
+      });
+      setFeedback(await res.json());
+    }catch(e){
+      setFeedback({error:String(e)});
+    }
+    setLoadingFb(false);
+  };
+
+  const targetList=targets.split(",").map(t=>t.trim()).filter(Boolean);
+  const totalHits=Object.values(scoreboard).reduce((a,b)=>a+b,0);
+
+  return(
+    <div style={{minHeight:"100vh",padding:"18px 20px",maxWidth:1440,margin:"0 auto"}}>
+      <ReportModal report={report} onClose={()=>setReport(null)} onNew={handleNew}/>
+
+      {lastHit&&(
+        <div className="toast" style={{background:"linear-gradient(135deg,#f59e0b,#fbbf24)",color:"#1a0f00"}}>
+          🎯 {lastHit}
+        </div>
+      )}
+
+      {/* header */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18,flexWrap:"wrap",gap:10}}>
+        <div>
+          <h1 style={{fontSize:24,fontWeight:700,
+            background:"linear-gradient(135deg,#60a5fa 0%,#a78bfa 50%,#f472b6 100%)",
+            WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:"-.01em"}}>
+            IELTS Study Platform
+          </h1>
+          <p style={{fontSize:12,color:"var(--muted)",marginTop:3}}>
+            Azure AI Foundry · Speech · Language · gpt-4.1-mini
+          </p>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          {sessionOn&&(
+            <span style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"var(--green)",fontWeight:600}}>
+              <span className="ldot"/>LIVE
+            </span>
+          )}
+          <input className="inp" style={{width:120}}
+            value={member} onChange={e=>setMember(e.target.value)}
+            placeholder="Your name" disabled={sessionOn}/>
+          <button className={`btn ${sessionOn?"btn-red":"btn-green"}`}
+            onClick={sessionOn?stopSession:startSession}>
+            {sessionOn?"⏹ Stop":"▶ Start Session"}
+          </button>
+        </div>
+      </div>
+
+      {/* target bar */}
+      {!sessionOn&&(
+        <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:16,
+          padding:"14px 18px",marginBottom:18,display:"flex",gap:12,alignItems:"flex-end"}}>
+          <div style={{flex:1}}>
+            <p style={{fontSize:12,color:"var(--muted)",marginBottom:6,fontWeight:600,
+              letterSpacing:".07em",textTransform:"uppercase"}}>
+              Target Expressions
+            </p>
+            <input className="inp" value={targets} onChange={e=>setTargets(e.target.value)}/>
+          </div>
+          <button className="btn btn-amber" onClick={generateTargets} disabled={loadingT}
+            style={{whiteSpace:"nowrap",flexShrink:0}}>
+            {loadingT?"...":"✨ Generate"}
+          </button>
+        </div>
+      )}
+
+      {/* 2x2 grid */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+
+        {/* ① question */}
+        <div className="panel">
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+            <span className="ptitle" style={{color:"var(--blue)",fontSize:12}}>① Question</span>
+            <div style={{display:"flex",gap:5}}>
+              {[1,2,3].map(p=>(
+                <button key={p} className={`btn btn-sm ${part===p?"btn-blue":"btn-ghost"}`}
+                  onClick={()=>setPart(p)}>P{p}</button>
+              ))}
+            </div>
+          </div>
+          <button className="btn btn-blue" onClick={generateQuestion} disabled={loadingQ}>
+            {loadingQ?"Generating...":"Generate Question"}
+          </button>
+          {question&&(
+            <>
+              <div style={{background:"var(--bg)",borderRadius:12,padding:16,border:"1px solid var(--border)"}}>
+                <p style={{fontSize:12,color:"var(--muted)",marginBottom:6,fontFamily:"var(--mono)"}}>
+                  Part {question.part} · {question.topic}
+                </p>
+                <p style={{fontSize:15,color:"var(--text)",lineHeight:1.7}}>{question.question}</p>
+                {question.bullet_points?.length>0&&(
+                  <ul style={{marginTop:10,display:"flex",flexDirection:"column",gap:4}}>
+                    {question.bullet_points.map((b,i)=>(
+                      <li key={i} style={{fontSize:13,color:"var(--muted)",paddingLeft:14,position:"relative"}}>
+                        <span style={{position:"absolute",left:0,color:"var(--blue)"}}>•</span>{b}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button className="btn btn-amber" style={{flex:1}} onClick={()=>setTimerMode("prep")}>Prep 15s</button>
+                <button className="btn btn-green" style={{flex:1}} onClick={()=>setTimerMode("answer")}>
+                  Answer {part===1?45:part===2?120:90}s
+                </button>
+              </div>
+              {timerMode&&timerMode!=="done"&&(
+                <CircleTimer
+                  secs={timerMode==="prep"?prepTimer.secs:answerTimer.secs}
+                  total={timerMode==="prep"?prepTimer.total:answerTimer.total}
+                  color={timerMode==="prep"?"#fbbf24":"#34d399"}/>
+              )}
+              {timerMode==="done"&&(
+                <p style={{textAlign:"center",fontSize:14,color:"var(--muted)"}}>⏱ Time's up!</p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ② transcript */}
+        <div className="panel">
+          <span className="ptitle" style={{color:"var(--teal)",fontSize:12}}>② Live Transcript</span>
+          <div ref={txRef} style={{flex:1,minHeight:260,maxHeight:340,overflowY:"auto",
+            display:"flex",flexDirection:"column",gap:6}}>
+            {transcript.length===0
+              ?<p style={{fontSize:14,color:"var(--border2)"}}>Start session to begin...</p>
+              :transcript.map((t,i)=>{
+                let html=t.masked||t.text;
+                (t.hits||[]).forEach(h=>{
+                  const esc=h.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+                  html=html.replace(new RegExp(esc,"gi"),m=>`<mark class="hl">${m}</mark>`);
+                });
+                return(
+                  <div key={i}>
+                    <span style={{fontSize:11,color:"var(--border2)",marginRight:8,fontFamily:"var(--mono)"}}>{t.time}</span>
+                    <span style={{fontSize:14,color:"var(--muted)"}}
+                      dangerouslySetInnerHTML={{__html:html}}/>
+                  </div>
+                );
+              })
+            }
+          </div>
+        </div>
+
+        {/* ③ tracker */}
+        <div className="panel">
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span className="ptitle" style={{color:"var(--amber)",fontSize:12}}>③ Target Tracker</span>
+            <span style={{fontSize:30,fontWeight:700,color:"var(--amber)",fontFamily:"var(--mono)"}}>{totalHits}</span>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:12,flex:1}}>
+            {targetList.length===0
+              ?<p style={{fontSize:14,color:"var(--border2)"}}>No targets set</p>
+              :targetList.map(expr=>{
+                const cnt=scoreboard[expr]||0;
+                const max=Math.max(...Object.values(scoreboard),1);
+                return(
+                  <div key={expr}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:14,marginBottom:5}}>
+                      <span style={{color:cnt>0?"var(--text)":"var(--muted)"}}>{expr}</span>
+                      <span style={{color:cnt>0?"var(--amber)":"var(--muted)",
+                        fontFamily:"var(--mono)",fontWeight:cnt>0?700:400}}>{cnt}×</span>
+                    </div>
+                    <div style={{height:6,background:"var(--bg)",borderRadius:6,overflow:"hidden"}}>
+                      <div style={{height:"100%",background:"linear-gradient(90deg,#d97706,#fbbf24)",
+                        borderRadius:6,width:`${Math.round(cnt/Math.max(max,1)*100)}%`,transition:"width .5s"}}/>
+                    </div>
+                  </div>
+                );
+              })
+            }
+          </div>
+          <p style={{fontSize:12,color:"var(--muted)",paddingTop:6,borderTop:"1px solid var(--border)"}}>
+            {member}
+          </p>
+        </div>
+
+        {/* ④ AI tutor */}
+        <div className="panel">
+          <span className="ptitle" style={{color:"var(--purple)",fontSize:12}}>④ AI Tutor</span>
+          <div style={{flex:1,minHeight:260,maxHeight:340,overflowY:"auto",
+            display:"flex",flexDirection:"column",gap:10}}>
+            {qaLog.length===0
+              ?<p style={{fontSize:14,color:"var(--border2)",lineHeight:1.7}}>
+                Ask mid-session...<br/>
+                <span style={{color:"var(--muted)"}}>"What is cohesion?"</span><br/>
+                <span style={{color:"var(--muted)"}}>"What's the difference between X and Y?"</span>
+               </p>
+              :qaLog.map((q,i)=>(
+                <div key={i}>
+                  <div style={{background:"var(--bg)",borderRadius:10,padding:12,marginBottom:5,border:"1px solid var(--border)"}}>
+                    <p style={{fontSize:11,color:"var(--muted)",marginBottom:3,fontFamily:"var(--mono)"}}>{q.time}</p>
+                    <p style={{fontSize:14,color:"var(--text)"}}>{q.question}</p>
+                  </div>
+                  <div style={{background:"#1a1030",border:"1px solid #3b1f6a",borderRadius:10,padding:12}}>
+                    {q.answer
+                      ?<p style={{fontSize:14,color:"#ddd6fe",lineHeight:1.65}}>{q.answer}</p>
+                      :<p style={{fontSize:13,color:"#4c1d95"}}>Thinking...</p>}
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+
+      {/* ⑤ feedback — full width */}
+      <FeedbackPanel
+        feedback={feedback}
+        loading={loadingFb}
+        transcript={fbTranscript}
+        question={question?.question||""}
+        part={part}
+        onGenerate={getFeedback}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
