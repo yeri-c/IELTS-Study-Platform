@@ -3,7 +3,15 @@
 > Real-time AI-powered IELTS speaking study assistant  
 > Built with Azure AI Foundry · Azure Speech · Azure AI Language
 
-![demo](demo.gif)
+<img width="1448" height="901" alt="image" src="https://github.com/user-attachments/assets/7e4f85e6-7df7-49ce-9ac9-70fa34884cf6" />
+
+<img width="1425" height="901" alt="image" src="https://github.com/user-attachments/assets/20b12010-42c9-4eed-b9f4-28d7ff29a284" />
+
+<img width="1424" height="902" alt="image" src="https://github.com/user-attachments/assets/0e23d057-57ae-41e7-be12-334033841a61" />
+
+<img width="731" height="894" alt="image" src="https://github.com/user-attachments/assets/effa9deb-4c1d-4651-8253-1087c3808cba" />
+
+<img width="704" height="897" alt="image" src="https://github.com/user-attachments/assets/c906bd06-5844-4b1b-bfa3-dce004cd8a3e" />
 
 ## Features
 
